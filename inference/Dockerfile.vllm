@@ -1,0 +1,15 @@
+FROM vllm/vllm-openai:v0.6.3
+
+ARG MODEL_ID=Qwen/Qwen2.5-7B-Instruct-AWQ
+ARG MODEL_PATH=/models/qwen2.5-7b-instruct-awq
+
+RUN mkdir -p "${MODEL_PATH}" && \
+    python3 -c "from huggingface_hub import snapshot_download; \
+snapshot_download(repo_id='${MODEL_ID}', local_dir='${MODEL_PATH}')"
+
+ENV TRANSFORMERS_OFFLINE=1
+ENV HF_HUB_OFFLINE=1
+
+LABEL org.opencontainers.image.title="Sovereign AI Assistant vLLM"
+LABEL org.opencontainers.image.description="vLLM with Qwen2.5-7B-Instruct-AWQ embedded"
+LABEL org.opencontainers.image.version="0.1.0"

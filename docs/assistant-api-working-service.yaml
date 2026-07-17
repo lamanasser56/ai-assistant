@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"assistant","app.kubernetes.io/name":"vllm","app.kubernetes.io/part-of":"ai-assistant"},"name":"assistant-api","namespace":"ai-llm"},"spec":{"ports":[{"name":"http","port":8000,"protocol":"TCP","targetPort":"http"}],"selector":{"app.kubernetes.io/name":"vllm"},"type":"ClusterIP"}}
+  creationTimestamp: "2026-07-17T15:36:16Z"
+  labels:
+    app.kubernetes.io/component: assistant
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/part-of: ai-assistant
+  name: assistant-api
+  namespace: ai-llm
+  resourceVersion: "27441"
+  uid: 13225e97-0faa-4347-b908-14ba5c8bcc5b
+spec:
+  clusterIP: 10.43.199.82
+  clusterIPs:
+  - 10.43.199.82
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 8000
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: vllm
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

@@ -1,0 +1,152 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "5"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"assistant","app.kubernetes.io/name":"vllm","app.kubernetes.io/part-of":"ai-assistant"},"name":"vllm","namespace":"ai-llm"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/name":"vllm"}},"strategy":{"type":"Recreate"},"template":{"metadata":{"labels":{"app.kubernetes.io/component":"assistant","app.kubernetes.io/name":"vllm","app.kubernetes.io/part-of":"ai-assistant"}},"spec":{"containers":[{"args":["--model","Qwen/Qwen2.5-7B-Instruct-AWQ","--served-model-name","assistant","--quantization","awq","--dtype","half","--max-model-len","4096","--gpu-memory-utilization","0.85","--max-num-seqs","4","--host","0.0.0.0","--port","8000"],"env":[{"name":"HF_HOME","value":"/models/huggingface"}],"image":"vllm/vllm-openai:v0.6.3","imagePullPolicy":"IfNotPresent","livenessProbe":{"failureThreshold":3,"httpGet":{"path":"/health","port":"http"},"periodSeconds":30,"timeoutSeconds":5},"name":"vllm","ports":[{"containerPort":8000,"name":"http","protocol":"TCP"}],"readinessProbe":{"failureThreshold":3,"httpGet":{"path":"/health","port":"http"},"periodSeconds":10,"timeoutSeconds":5},"resources":{"limits":{"cpu":"4","memory":"14Gi","nvidia.com/gpu":"1"},"requests":{"cpu":"2","memory":"10Gi","nvidia.com/gpu":"1"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"startupProbe":{"failureThreshold":120,"httpGet":{"path":"/health","port":"http"},"periodSeconds":10,"timeoutSeconds":5},"volumeMounts":[{"mountPath":"/models/huggingface","name":"model-cache"},{"mountPath":"/dev/shm","name":"shared-memory"}]}],"enableServiceLinks":false,"nodeSelector":{"nvidia.com/gpu.present":"true","nvidia.com/gpu.product":"Tesla-T4"},"terminationGracePeriodSeconds":60,"volumes":[{"emptyDir":{"sizeLimit":"20Gi"},"name":"model-cache"},{"emptyDir":{"medium":"Memory","sizeLimit":"2Gi"},"name":"shared-memory"}]}}}}
+  creationTimestamp: "2026-07-16T23:43:32Z"
+  generation: 7
+  labels:
+    app.kubernetes.io/component: assistant
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/part-of: ai-assistant
+  name: vllm
+  namespace: ai-llm
+  resourceVersion: "27614"
+  uid: c6f1bbd9-ae0e-4205-985d-ff00d02fb370
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-07-17T17:22:32+03:00"
+      labels:
+        app.kubernetes.io/component: assistant
+        app.kubernetes.io/name: vllm
+        app.kubernetes.io/part-of: ai-assistant
+    spec:
+      containers:
+      - args:
+        - --model
+        - Qwen/Qwen2.5-7B-Instruct-AWQ
+        - --served-model-name
+        - assistant
+        - --quantization
+        - awq
+        - --dtype
+        - half
+        - --max-model-len
+        - "4096"
+        - --gpu-memory-utilization
+        - "0.85"
+        - --max-num-seqs
+        - "4"
+        - --host
+        - 0.0.0.0
+        - --port
+        - "8000"
+        env:
+        - name: HF_HOME
+          value: /models/huggingface
+        - name: VLLM_PORT
+          value: "8000"
+        image: vllm/vllm-openai:v0.6.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: vllm
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "4"
+            memory: 14Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: "2"
+            memory: 10Gi
+            nvidia.com/gpu: "1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 120
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /models/huggingface
+          name: model-cache
+        - mountPath: /dev/shm
+          name: shared-memory
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: false
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+        nvidia.com/gpu.product: Tesla-T4
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir:
+          sizeLimit: 20Gi
+        name: model-cache
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+        name: shared-memory
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2026-07-17T15:38:50Z"
+    lastUpdateTime: "2026-07-17T15:38:50Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2026-07-17T15:25:18Z"
+    lastUpdateTime: "2026-07-17T15:38:50Z"
+    message: ReplicaSet "vllm-5b988b7f46" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 7
+  readyReplicas: 1
+  replicas: 1
+  terminatingReplicas: 0
+  updatedReplicas: 1

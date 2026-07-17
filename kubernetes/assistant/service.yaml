@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: assistant-api
+  namespace: ai-llm
+  labels:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/component: assistant
+    app.kubernetes.io/part-of: ai-assistant
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: vllm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
