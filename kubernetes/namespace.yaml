@@ -1,7 +1,12 @@
+############################################################
+# CANONICAL PRODUCTION MANIFEST
+#
+# Official Namespace manifest for Phase 1.
+# Maintain and apply this file.
+############################################################
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ai-llm
   labels:
     app.kubernetes.io/part-of: ai-assistant
-

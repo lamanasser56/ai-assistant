@@ -1,86 +1,53 @@
-# AI Assistant — vLLM Foundation
+# Sovereign AI Assistant Platform
 
-Minimal Kubernetes foundation for serving `Qwen/Qwen2.5-7B-Instruct-AWQ` through
-the OpenAI-compatible vLLM API on a single NVIDIA Tesla T4 GPU.
+A phased Kubernetes platform for self-hosted AI services. The complete platform is not production-ready; only Phase 1 runtime validation is complete.
 
-## Components
+## Implementation status
 
-- Namespace: `ai-llm`
-- vLLM: `vllm/vllm-openai:v0.6.3`
-- Served model name: `assistant`
-- Persistent Hugging Face model cache
-- Internal-only `ClusterIP` service
+- [x] Phase 1 — AI Chat Assistant
+- [ ] Phase 2 — Speech-to-Text
+- [ ] Phase 3 — OCR
+- [ ] Phase 4 — Backend API
+- [ ] Phase 5 — Frontend Portal
+- [ ] Phase 6 — Ingress, TLS, security, and monitoring integration
 
-No application gateway, speech, OCR, portal, monitoring, or CI components are
-included yet.
+## Phase 1 summary
 
-## Prerequisites
+Phase 1 serves `Qwen/Qwen2.5-7B-Instruct-AWQ` with vLLM on an NVIDIA Tesla T4 through the internal `assistant-api` ClusterIP Service. Five concurrent sessions and Pod self-healing were validated manually.
 
-- A working k3s cluster
-- NVIDIA drivers and the NVIDIA container runtime/device plugin configured
-- One schedulable Tesla T4 GPU exposed as `nvidia.com/gpu`
-- The k3s `local-path` StorageClass, or an equivalent default StorageClass
-- `kubectl` access when you are ready to deploy
+See [`docs/phase-1-ai-assistant.md`](docs/phase-1-ai-assistant.md) for design, API, SLA, capacity, limitations, and evidence.
 
-Before deployment, list the cluster StorageClasses:
+## Canonical Phase 1 manifests
 
-```bash
-kubectl get storageclass
-```
+~~~text
+kubernetes/
+├── namespace.yaml
+└── assistant/
+    ├── deployment.yaml
+    └── service.yaml
+~~~
 
-Verify that one StorageClass is marked as the default. The Phase 1 PVC does not
-set `storageClassName`, so Kubernetes relies on the cluster default for dynamic
-volume provisioning.
+Older YAML is retained and marked `DEPRECATED` or `EVIDENCE ONLY`.
 
-If the Hugging Face model requires authentication in your environment, add a
-Kubernetes Secret separately and expose `HF_TOKEN` to the container. Do not
-commit tokens to this repository.
+## Deferred work
 
-## Files
+Backend, Frontend, Whisper, OCR, Ingress, TLS, authentication, and monitoring integration are intentionally deferred.
 
-```text
-.
-├── README.md
-├── docs/
-│   └── capacity-math.md
-├── kubernetes/
-│   ├── namespace.yaml
-│   └── vllm.yaml
-└── tests/
-    ├── test-chat.sh
-    └── test-concurrency.py
-```
+## Static validation
 
-## Deployment sequence
+~~~bash
+kubectl apply --dry-run=client -f kubernetes/namespace.yaml
+kubectl apply --dry-run=client -f kubernetes/assistant/
+~~~
 
-These commands are documentation only; they have not been run by this project:
+## Local API verification
 
-```bash
-kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f kubernetes/vllm.yaml
-kubectl -n ai-llm rollout status deployment/vllm
-```
+Port-forward is for administrator testing, not production exposure:
 
-The service is internal to the cluster at:
-
-```text
-http://vllm.ai-llm.svc.cluster.local:8000
-```
-
-For testing from an administrator workstation, establish port forwarding in a
-separate terminal:
-
-```bash
-kubectl -n ai-llm port-forward service/vllm 8000:8000
-```
-
-Then run:
-
-```bash
+~~~bash
+kubectl port-forward -n ai-llm svc/assistant-api 8000:8000
+curl -i http://localhost:8000/health
+curl http://localhost:8000/v1/models
 VLLM_BASE_URL=http://127.0.0.1:8000 ./tests/test-chat.sh
 VLLM_BASE_URL=http://127.0.0.1:8000 python3 tests/test-concurrency.py
-```
-
-The concurrency test defaults to four simultaneous requests, matching
-`--max-num-seqs 4`.
-
+~~~

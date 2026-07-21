@@ -1,3 +1,9 @@
+############################################################
+# CANONICAL PRODUCTION MANIFEST
+#
+# Official assistant-api Service manifest for Phase 1.
+# Maintain and apply this file.
+############################################################
 apiVersion: v1
 kind: Service
 metadata:

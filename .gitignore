@@ -1,0 +1,72 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Kubernetes credentials and local config
+.kube/
+kubeconfig
+kubeconfig-*
+*.kubeconfig
+
+# Sensitive Kubernetes files
+**/secret.yaml
+**/secrets.yaml
+**/*-secret.yaml
+**/*-secrets.yaml
+**/secret-values.yaml
+!**/secret.example.yaml
+!**/secrets.example.yaml
+
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+
+# Specific token and credential files
+.token
+*.token
+hf_token
+credentials.json
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+.cache/
+.DS_Store
+Thumbs.db
+
+# Model caches and large model artifacts
+.huggingface/
+.cache/huggingface/
+models/
+*.safetensors
+*.bin
+*.gguf
+*.onnx
+*.pt
+*.pth
+
+# Local assignment briefs and excluded evidence
+Final_Project_Brief*.pdf
+*Final_Project_Brief*.pdf
+.local-evidence/

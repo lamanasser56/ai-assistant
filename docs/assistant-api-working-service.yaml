@@ -1,3 +1,14 @@
+############################################################
+# EVIDENCE ONLY
+#
+# Historical working Service exported from Kubernetes.
+#
+# Documentation only.
+# Do NOT apply.
+#
+# Official manifest:
+# kubernetes/assistant/service.yaml
+############################################################
 apiVersion: v1
 kind: Service
 metadata:

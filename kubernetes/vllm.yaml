@@ -1,3 +1,16 @@
+############################################################
+# DEPRECATED
+#
+# Old combined manifest containing PVC + Deployment + Service.
+#
+# Superseded by:
+# - kubernetes/namespace.yaml
+# - kubernetes/assistant/deployment.yaml
+# - kubernetes/assistant/service.yaml
+#
+# Keep only for historical reference.
+# Do NOT apply this manifest.
+############################################################
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -134,4 +147,3 @@ spec:
       port: 8000
       targetPort: http
       protocol: TCP
-

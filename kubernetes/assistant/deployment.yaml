@@ -1,3 +1,9 @@
+############################################################
+# CANONICAL PRODUCTION MANIFEST
+#
+# Official vLLM Deployment manifest for Phase 1.
+# Maintain and apply this file.
+############################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -51,7 +57,7 @@ spec:
             - --gpu-memory-utilization
             - "0.85"
             - --max-num-seqs
-            - "4"
+            - "8"
             - --host
             - 0.0.0.0
             - --port
