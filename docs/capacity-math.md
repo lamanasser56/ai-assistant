@@ -86,3 +86,13 @@ be verified before deployment.
 included concurrency test therefore sends four parallel requests by default.
 Requests beyond this bound may queue; this is expected and should be measured
 with latency percentiles rather than treated as an automatic failure.
+
+## Empirical before/after evidence
+
+The screenshots confirm the calculated capacity behavior. Before, with
+`max-num-seqs=4`, one of five concurrent requests was queued and had a TTFT of
+approximately 11.14 seconds. After increasing `max-num-seqs` to 8, all five
+concurrent sessions completed with TTFTs between 0.93 and 1.30 seconds.
+
+Although increasing `max-num-seqs` increased the theoretical KV-cache budget,
+it removed the queuing bottleneck, matching the capacity calculations above.
