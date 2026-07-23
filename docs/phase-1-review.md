@@ -1,4 +1,24 @@
-﻿# Phase 1 Review
+
+ **Superseded note (added after live deployment and load testing):** This
+document was written as an early, static-only review before the platform
+was deployed and exercised on the cluster. Two things below are now out of
+ date:
+
+ - "Maximum active sequences | `4`" in the settings table reflects the
+   configuration at the time of this review. The canonical Deployment
+   (`kubernetes/assistant/deployment.yaml`) and `docs/phase-1-ai-assistant.md`
+   now run `--max-num-seqs 8`; the corresponding KV-cache budget is in
+   `docs/capacity-math.md`.
+ - The "Validation status" section states the manifests were only statically
+   inspected and not applied or validated on a cluster. This has since been
+   superseded: the platform was deployed, and FR1/FR2/FR3 SLAs, self-healing,
+   and monitoring/alerting were validated live against the running cluster
+   (see `README.md` and `docs/evidence/`).
+
+ This document is retained for its architectural rationale and as part of
+ the project's assumptions-and-clarifications history, not as a description
+ of the current operational state.
+ # Phase 1 Review
 
 ## Scope and architecture
 
