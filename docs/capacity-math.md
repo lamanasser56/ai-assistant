@@ -5,7 +5,7 @@ Validate it with representative prompts after deployment.
 
 ## GPU budget
 
-The Tesla T4 has 16 GiB of VRAM. With:
+The Tesla T4 has 16 GiB of VRAM (15,360 MiB, per `nvidia-smi`). With:
 
 ```text
 --gpu-memory-utilization 0.85
@@ -14,13 +14,20 @@ The Tesla T4 has 16 GiB of VRAM. With:
 vLLM may use approximately:
 
 ```text
-16 GiB × 0.85 = 13.6 GiB
+15,360 MiB × 0.85 ≈ 13,056 MiB (12.75 GiB)
 ```
 
-The remaining approximately 2.4 GiB provides headroom for CUDA context,
-non-vLLM GPU consumers, and variance in runtime allocation. The model uses AWQ
-quantization, which makes a 7B model practical on a T4, but actual model weight
-and runtime allocations must be measured from the running pod.
+Observed total GPU memory usage for the running vLLM pod is 11,443 MiB
+(`nvidia-smi`, captured evidence), which fits inside the 13,056 MiB budget
+with roughly 1,613 MiB of budgeted headroom unused, plus a further 2,304 MiB
+left completely outside the 0.85 fraction as driver/OS margin.
+
+The model uses AWQ (4-bit) quantization, which makes a 7B model practical on
+a T4. The AWQ checkpoint weights are estimated at roughly 4-4.5 GiB, leaving
+the remainder of the 11,443 MiB observed usage for vLLM's KV-cache block
+pool, CUDA graphs, and activation buffers; exact weight and runtime
+allocations should still be measured from the running pod rather than
+assumed.
 
 The deployment requests and limits exactly one `nvidia.com/gpu`, preventing
 another Kubernetes GPU workload from being scheduled onto the same device via
@@ -28,19 +35,57 @@ the device plugin.
 
 ## Context and sequence budget
 
-The serving bounds are:
+The serving bounds, matching `kubernetes/assistant/deployment.yaml`, are:
 
 ```text
 maximum context per sequence = 4,096 tokens
-maximum active sequences     = 4
-theoretical token slots       = 4 × 4,096 = 16,384 tokens
+maximum active sequences     = 8
+theoretical token slots       = 8 × 4,096 = 32,768 tokens
 ```
 
-This is a worst-case upper bound for simultaneously active sequence tokens, not
-the expected token count of every batch. vLLM allocates its KV cache from the
-GPU memory remaining after model and runtime allocations. If the engine cannot
-initialize or latency is unstable, reduce `max-model-len` or `max-num-seqs`
-before increasing GPU utilization.
+This is a worst-case upper bound for simultaneously active sequence tokens,
+not the expected token count of every batch. vLLM allocates its KV cache from
+the GPU memory remaining after model and runtime allocations. If the engine
+cannot initialize or latency is unstable, reduce `max-model-len` or
+`max-num-seqs` before increasing GPU utilization.
+
+## KV-cache budget (worked calculation)
+
+Qwen2.5-7B-Instruct uses grouped-query attention with the following published
+architecture parameters (`config.json`): 28 transformer layers, 4 KV heads,
+and a head dimension of 128 (`hidden_size` 3,584 ÷ `num_attention_heads` 28).
+Quantizing the linear weights to AWQ does not change these attention
+dimensions or the KV-cache dtype, which is set independently by `--dtype half`
+(FP16, 2 bytes/element).
+
+KV-cache bytes per token:
+
+```text
+2 (K and V) × 28 layers × 4 KV heads × 128 head_dim × 2 bytes
+  = 57,344 bytes/token (56 KiB/token)
+```
+
+KV-cache per fully-filled sequence (`max-model-len` = 4,096):
+
+```text
+57,344 bytes × 4,096 tokens = 234,881,024 bytes ≈ 224 MiB/sequence
+```
+
+Worst-case KV-cache demand at the configured concurrency target
+(`max-num-seqs` = 8, all sequences simultaneously at the full 4,096-token
+context):
+
+```text
+224 MiB × 8 sequences ≈ 1,792 MiB (1.75 GiB)
+```
+
+This worst-case 1.75 GiB fits comfortably inside the 13,056 MiB (12.75 GiB)
+`gpu-memory-utilization` budget, and inside the roughly 6.9-7 GiB estimated to
+remain after AWQ model weights within the 11,443 MiB actually observed in
+use. In practice, average prompt/response lengths during the FR1 SLA test
+(300 tokens) are far below the 4,096-token ceiling, so real KV-cache
+consumption during the five-concurrent-session test was well under this
+worst case — consistent with the passing throughput and TTFT results.
 
 ## System memory budget
 
@@ -82,27 +127,30 @@ be verified before deployment.
 
 ## Expected concurrency
 
-`--max-num-seqs 4` allows at most four active sequences in the scheduler. The
-included concurrency test therefore sends four parallel requests by default.
-Requests beyond this bound may queue; this is expected and should be measured
-with latency percentiles rather than treated as an automatic failure.
+`--max-num-seqs 8` allows at most eight active sequences in the scheduler. The
+FR1 SLA test validated five concurrent sessions (below this ceiling), all
+passing the throughput and TTFT SLAs. Requests beyond the eight-sequence bound
+may queue; this is expected and should be measured with latency percentiles
+rather than treated as an automatic failure.
 
 ## Empirical before/after evidence
 
-The screenshots confirm the calculated capacity behavior. Before, with
-`max-num-seqs=4`, one of five concurrent requests was queued and had a TTFT of
-approximately 11.14 seconds. After increasing `max-num-seqs` to 8, all five
-concurrent sessions completed with TTFTs between 0.93 and 1.30 seconds.
+The FR1 SLA test (`scripts/fr1_sla_test.py`) was run twice against the same
+five-concurrent-session scenario at two different `--max-num-seqs` values,
+giving direct experimental confirmation of the queuing behavior implied by
+the theoretical budget above:
 
-Although increasing `max-num-seqs` increased the theoretical KV-cache budget,
-it removed the queuing bottleneck, matching the capacity calculations above.
+- **`max-num-seqs = 4`** (`docs/evidence/fr1/before-max-seqs-4-queuing.png`):
+  four of five concurrent sessions completed with the expected ~1.3 s TTFT,
+  but one session queued behind the four-slot limit and measured an 11.14 s
+  TTFT — direct evidence of scheduler queuing once concurrent requests exceed
+  the configured slot count.
+- **`max-num-seqs = 8`** (`docs/evidence/fr1/after-max-seqs-8-uniform.png`):
+  after raising the limit, the identical five-session test produced uniform
+  TTFTs of 0.93-1.30 s across all sessions, with no queuing outlier.
 
-## Empirical before/after evidence
-
-The screenshots confirm the calculated capacity behavior. Before, with
-`max-num-seqs=4`, one of five concurrent requests was queued and had a TTFT of
-approximately 11.14 seconds. After increasing `max-num-seqs` to 8, all five
-concurrent sessions completed with TTFTs between 0.93 and 1.30 seconds.
-
-Although increasing `max-num-seqs` increased the theoretical KV-cache budget,
-it removed the queuing bottleneck, matching the capacity calculations above.
+This matches the KV-cache budget above: raising `max-num-seqs` from 4 to 8
+increases the worst-case KV-cache reservation from roughly 896 MiB (0.875
+GiB) to 1,792 MiB (1.75 GiB) — still well inside the available
+`gpu-memory-utilization` budget — while removing the single-slot bottleneck
+that caused the queuing delay at the lower setting.
