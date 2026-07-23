@@ -7,6 +7,7 @@
 .kube/
 kubeconfig
 kubeconfig-*
+kubeconfig*
 *.kubeconfig
 
 # Sensitive Kubernetes files
@@ -14,6 +15,8 @@ kubeconfig-*
 **/secrets.yaml
 **/*-secret.yaml
 **/*-secrets.yaml
+**/secrets*.yaml
+**/telegram-secret.yaml
 **/secret-values.yaml
 !**/secret.example.yaml
 !**/secrets.example.yaml
@@ -70,3 +73,7 @@ models/
 Final_Project_Brief*.pdf
 *Final_Project_Brief*.pdf
 .local-evidence/
+
+# Backup and local Python environments
+*.bak
+.venv*/

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper-api
+  namespace: ai-llm
+  labels:
+    app.kubernetes.io/name: whisper
+    app.kubernetes.io/component: speech-to-text
+    app.kubernetes.io/part-of: ai-assistant
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: whisper
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

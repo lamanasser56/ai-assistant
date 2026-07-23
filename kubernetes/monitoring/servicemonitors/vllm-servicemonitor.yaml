@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vllm
+  namespace: monitoring
+  labels:
+    release: monitoring
+    app.kubernetes.io/part-of: sovereign-ai-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - ai-llm
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+      app.kubernetes.io/component: assistant
+      app.kubernetes.io/part-of: ai-assistant
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

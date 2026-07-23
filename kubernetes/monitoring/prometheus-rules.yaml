@@ -1,0 +1,43 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sovereign-ai-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+    app.kubernetes.io/part-of: sovereign-ai-monitoring
+spec:
+  groups:
+    - name: sovereign-ai.rules
+      rules:
+        - alert: SovereignAIHighCPU
+          expr: 'sum(rate(container_cpu_usage_seconds_total{namespace="ai-llm",container!="",image!=""}[5m])) > 0.8'
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Sovereign AI namespace CPU usage is high
+            description: The ai-llm namespace has used more than 0.8 CPU cores for at least 5 minutes (current value {{ $value }} cores).
+        - alert: SovereignAIPodNotReady
+          expr: 'max by (namespace, pod) (kube_pod_status_ready{namespace="ai-llm",condition="true"} == 0) > 0'
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Sovereign AI pod is not ready
+            description: Pod {{ $labels.namespace }}/{{ $labels.pod }} has remained not ready for at least 5 minutes.
+        - alert: SovereignAIPodRestarting
+          expr: 'sum by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{namespace="ai-llm"}[15m])) > 0'
+          labels:
+            severity: warning
+          annotations:
+            summary: Sovereign AI container restarted
+            description: Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} restarted during the last 15 minutes ({{ $value }} restarts).
+        - alert: SovereignAIServiceDown
+          expr: 'up{namespace="ai-llm"} == 0'
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Sovereign AI monitored target is down
+            description: Prometheus target {{ $labels.job }} at {{ $labels.instance }} in namespace ai-llm has been unreachable for at least 5 minutes.

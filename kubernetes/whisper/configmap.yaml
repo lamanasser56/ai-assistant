@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whisper-config
+  namespace: ai-llm
+data:
+  WHISPER_MODEL_PATH: /models/whisper-base
+  WHISPER_DEVICE: cpu
+  WHISPER_COMPUTE_TYPE: int8
+  WHISPER_CPU_THREADS: "2"

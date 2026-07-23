@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: ai-llm
+data:
+  VLLM_URL: http://assistant-api:8000
+  WHISPER_URL: http://whisper-api:8000
+  OCR_URL: http://ocr-api:8000
+  BACKEND_CORS_ORIGINS: ""
+  BACKEND_REQUEST_TIMEOUT_SECONDS: "60"
+  BACKEND_MAX_UPLOAD_BYTES: "26214400"

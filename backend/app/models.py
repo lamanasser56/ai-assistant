@@ -1,0 +1,14 @@
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=8000)
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    max_tokens: int | None = Field(default=None, gt=0, le=2048)
+
+
+class ErrorResponse(BaseModel):
+    detail: str
+    request_id: str

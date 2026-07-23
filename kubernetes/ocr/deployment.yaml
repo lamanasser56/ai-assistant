@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocr
+  namespace: ai-llm
+  labels:
+    app.kubernetes.io/name: ocr
+    app.kubernetes.io/component: ocr
+    app.kubernetes.io/part-of: ai-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ocr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ocr
+        app.kubernetes.io/component: ocr
+        app.kubernetes.io/part-of: ai-assistant
+    spec:
+      terminationGracePeriodSeconds: 30
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nvidia.com/gpu.present
+                operator: DoesNotExist
+      containers:
+      - name: ocr
+        image: lamai7/ocr-service:v1.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        startupProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          periodSeconds: 10
+          failureThreshold: 30
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL

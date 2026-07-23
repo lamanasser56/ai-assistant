@@ -1,53 +1,129 @@
 # Sovereign AI Assistant Platform
 
-A phased Kubernetes platform for self-hosted AI services. The complete platform is not production-ready; only Phase 1 runtime validation is complete.
+## 1. Project Overview
 
-## Implementation status
+The Sovereign AI Assistant Platform is a self-hosted AI workspace running on Kubernetes. It combines private language-model inference, speech transcription, OCR, a backend API, a browser portal, and cluster monitoring in the `ai-llm` namespace.
 
-- [x] Phase 1 — AI Chat Assistant
-- [ ] Phase 2 — Speech-to-Text
-- [ ] Phase 3 — OCR
-- [ ] Phase 4 — Backend API
-- [ ] Phase 5 — Frontend Portal
-- [ ] Phase 6 — Ingress, TLS, security, and monitoring integration
+![Sovereign AI Assistant Platform frontend](docs/evidence/platform/10-frontend-portal.png)
 
-## Phase 1 summary
+## 2. Architecture
 
-Phase 1 serves `Qwen/Qwen2.5-7B-Instruct-AWQ` with vLLM on an NVIDIA Tesla T4 through the internal `assistant-api` ClusterIP Service. Five concurrent sessions and Pod self-healing were validated manually.
+```text
+Use
+  |
+  v
+Frontend Portal (Nginx)
+  |
+  v
+Backend API (FastAPI)
+  |------------------|------------------|
+  v                  v                  v
+vLLM / Qwen      Whisper STT         OCR / Tesseract
+  |
+  v
+NVIDIA GPU
 
-See [`docs/phase-1-ai-assistant.md`](docs/phase-1-ai-assistant.md) for design, API, SLA, capacity, limitations, and evidence.
+Prometheus + Grafana observe Kubernetes workload health and resource usage.
+```
 
-## Canonical Phase 1 manifests
+The application services use internal Kubernetes `ClusterIP` networking.
 
-~~~text
-kubernetes/
-├── namespace.yaml
-└── assistant/
-    ├── deployment.yaml
-    └── service.yaml
-~~~
+![Kubernetes service inventory](docs/evidence/platform/11-kubernetes-services.png)
 
-Older YAML is retained and marked `DEPRECATED` or `EVIDENCE ONLY`.
+## 3. Technology Stack
 
-## Deferred work
+| Layer | Technology |
+|---|---|
+| Orchestration | Kubernetes / k3s |
+| Language model serving | vLLM with Qwen2.5-7B-Instruct-AWQ |
+| GPU runtime | NVIDIA container runtime and Tesla T4 |
+| Speech-to-text | Faster Whisper |
+| OCR | Tesseract, Pillow, and pytesseract |
+| Backend | Python, FastAPI, Uvicorn, and HTTPX |
+| Frontend | React, Vite, and Nginx |
+| Monitoring | kube-prometheus-stack, Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter |
 
-Backend, Frontend, Whisper, OCR, Ingress, TLS, authentication, and monitoring integration are intentionally deferred.
+The captured GPU evidence shows the Tesla T4 and the vLLM workload running on the GPU node.
 
-## Static validation
+![vLLM GPU runtime](docs/evidence/platform/06-vllm-gpu-runtime.png)
 
-~~~bash
-kubectl apply --dry-run=client -f kubernetes/namespace.yaml
-kubectl apply --dry-run=client -f kubernetes/assistant/
-~~~
+## 4. Kubernetes Deployment
 
-## Local API verification
+The captured deployment state shows Backend, Frontend, OCR, vLLM, and Whisper available in `ai-llm`.
 
-Port-forward is for administrator testing, not production exposure:
+![Kubernetes deployments ready](docs/evidence/platform/01-deployments-ready.png)
 
-~~~bash
-kubectl port-forward -n ai-llm svc/assistant-api 8000:8000
-curl -i http://localhost:8000/health
-curl http://localhost:8000/v1/models
-VLLM_BASE_URL=http://127.0.0.1:8000 ./tests/test-chat.sh
-VLLM_BASE_URL=http://127.0.0.1:8000 python3 tests/test-concurrency.py
-~~~
+Workload QoS is visible in the pod inventory. vLLM is `Guaranteed`; the remaining captured application pods are `Burstable`.
+
+![Kubernetes pod QoS](docs/evidence/platform/02-pod-qos.png)
+
+Kubernetes self-healing was exercised by deleting both a Frontend pod and the vLLM pod. The screenshot records replacement pods becoming ready.
+
+![Frontend and vLLM self-healing](docs/evidence/platform/03-frontend-vllm-self-healing.png)
+
+## 5. FR1 – AI Assistant (vLLM + Qwen2.5-7B-Instruct-AWQ)
+
+FR1 serves the `assistant` model through vLLM. The captured API response shows a successful chat completion from the deployed model.
+
+![vLLM chat completion](docs/evidence/platform/05-vllm-chat-completion.png)
+
+The captured SLA test records passing single-session and five-concurrent-session runs.
+
+![vLLM single and concurrent session SLA](docs/evidence/platform/07-vllm-sla.png)
+
+The recorded vLLM pod recovery test reached the Ready condition in 66 seconds.
+
+![vLLM recovery time](docs/evidence/platform/04-vllm-recovery-time.png)
+
+Detailed FR1 design and validation notes are available in [docs/phase-1-ai-assistant.md](docs/phase-1-ai-assistant.md).
+
+## 6. FR2 – Speech-to-Text (Whisper)
+
+FR2 accepts audio and returns a text transcription through the Whisper API. The following is the single official transcription-output screenshot selected from the evidence PDF.
+
+![Whisper transcription output](docs/evidence/platform/08-whisper-transcription.png)
+
+Additional implementation and validation notes are available in [docs/phase-2-whisper.md](docs/phase-2-whisper.md).
+
+## 7. FR3 – OCR
+
+FR3 extracts readable text from an uploaded image. The following is the single official OCR-output screenshot selected from the evidence PDF.
+
+![OCR extracted text output](docs/evidence/platform/09-ocr-output.png)
+
+## 8. Monitoring (Prometheus + Grafana)
+
+The monitoring stack provides namespace and pod-level CPU and memory visibility. The captured Grafana dashboard is filtered to the `ai-llm` namespace and shows live application workload metrics.
+
+![Grafana monitoring for ai-llm](docs/evidence/platform/12-grafana-monitoring.png)
+
+Production-style monitoring configuration and operational guidance are in [kubernetes/monitoring](kubernetes/monitoring/README.md).
+
+## 9. Frontend Portal
+
+The React portal provides one interface for AI Chat, Speech to Text, OCR, and service health. Nginx serves the built frontend and proxies API requests to the Backend Service. The platform overview screenshot is shown in the Project Overview; Frontend self-healing is recorded in the Kubernetes Deployment section without duplicating either image.
+
+## 10. Repository Structure
+
+```text
+ai-assistant/
+|-- backend/                  # FastAPI gateway and upstream integrations
+|-- frontend/                 # React/Vite portal served by Nginx
+|-- inference/                # vLLM image definition
+|-- whisper/                  # Speech-to-text service
+|-- ocr/                      # OCR service
+|-- kubernetes/
+|   |-- assistant/            # Canonical vLLM Deployment and Service
+|   |-- backend/              # Backend Kubernetes resources
+|   |-- frontend/             # Frontend Kubernetes resources
+|   |-- whisper/              # Whisper Kubernetes resources
+|   |-- ocr/                  # OCR Kubernetes resources
+|   `-- monitoring/           # Helm values, alerts, dashboard, and ServiceMonito
+|-- docs/
+|   `-- evidence/
+|       `-- platform/         # Official screenshots selected from the evidence PDF
+|-- scripts/                  # Validation and SLA utilities
+`-- tests/                    # API and concurrency checks
+```
+
+The images in `docs/evidence/platform/` were extracted from the supplied evidence PDF. Empty pages and duplicate terminal outputs were intentionally excluded.

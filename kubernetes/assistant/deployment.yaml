@@ -63,9 +63,6 @@ spec:
             - --port
             - "8000"
 
-         # env:
-          #  - name: HF_HOME
-           #   value: /models/huggingface
 
           ports:
             - name: http
@@ -113,15 +110,10 @@ spec:
                 - ALL
 
           volumeMounts:
-            #- name: model-cache
-            #  mountPath: /models/huggingface
             - name: shared-memory
               mountPath: /dev/shm
 
       volumes:
-        #- name: model-cache
-         # emptyDir:
-          #  sizeLimit: 20Gi
 
         - name: shared-memory
           emptyDir:
