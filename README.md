@@ -53,7 +53,7 @@ The captured deployment state shows Backend, Frontend, OCR, vLLM, and Whisper av
 
 ![Kubernetes deployments ready](docs/evidence/platform/01-deployments-ready.png)
 
-Workload QoS is visible in the pod inventory. vLLM is `Guaranteed`; the remaining captured application pods are `Burstable`.
+Workload QoS is visible in the pod inventory. The vLLM pod's actual QoS class is `Burstable` because its CPU request and CPU limit are different. The Kubernetes resource values are unchanged.
 
 ![Kubernetes pod QoS](docs/evidence/platform/02-pod-qos.png)
 
@@ -83,6 +83,10 @@ FR2 accepts audio and returns a text transcription through the Whisper API. The 
 
 ![Whisper transcription output](docs/evidence/platform/08-whisper-transcription.png)
 
+The measured Whisper SLA run completed with `PASS`, recording a processing time below the configured 30-second limit.
+
+![Whisper SLA PASS evidence](docs/evidence/fr2/whisper-sla-pass.png)
+
 Additional implementation and validation notes are available in [docs/phase-2-whisper.md](docs/phase-2-whisper.md).
 
 ## 7. FR3 – OCR
@@ -91,11 +95,23 @@ FR3 extracts readable text from an uploaded image. The following is the single o
 
 ![OCR extracted text output](docs/evidence/platform/09-ocr-output.png)
 
+The OCR API response evidence includes the measured `processing_seconds` field.
+
+![OCR processing_seconds evidence](docs/evidence/fr3/ocr-processing-seconds.png)
+
 ## 8. Monitoring (Prometheus + Grafana)
 
 The monitoring stack provides namespace and pod-level CPU and memory visibility. The captured Grafana dashboard is filtered to the `ai-llm` namespace and shows live application workload metrics.
 
 ![Grafana monitoring for ai-llm](docs/evidence/platform/12-grafana-monitoring.png)
+
+The runtime-validated alerting implementation used Grafana native alerting, including a configured evaluation group and a successfully sent test notification.
+
+![Grafana native alert rule evidence](docs/evidence/monitoring/grafana-native-alert-rule.png)
+
+![Grafana successful test notification](docs/evidence/monitoring/grafana-test-notification-success.png)
+
+`kubernetes/monitoring/prometheus-rules.yaml` is an unapplied reference manifest only. It is not presented as deployed or runtime-validated.
 
 Production-style monitoring configuration and operational guidance are in [kubernetes/monitoring](kubernetes/monitoring/README.md).
 

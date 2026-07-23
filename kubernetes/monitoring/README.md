@@ -10,6 +10,8 @@ Only the vLLM ServiceMonitor is valid from repository evidence. The image derive
 
 GPU panels and a DCGM deployment are intentionally omitted because live installation could not be verified and an exporter must not risk the working GPU workload. If GPU telemetry is required, install NVIDIA's dcgm-exporter chart only after confirming the node label, configure affinity/node selection for `nvidia.com/gpu.present`, do not request `nvidia.com/gpu`, and enable its ServiceMonitor with label `release: monitoring`. Verify the DaemonSet lands only on GPU-labelled nodes before adding `DCGM_FI_DEV_GPU_UTIL` or memory panels.
 
+The validated runtime alerting implementation used Grafana native alerting. Evidence shows the Grafana alert-rule evaluation group and a successful contact-point test notification. `prometheus-rules.yaml` is an unapplied reference manifest only; it has not been deployed or runtime-validated.
+
 ## Prerequisites and preflight
 
 ```bash
@@ -32,7 +34,6 @@ helm repo update
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   --namespace monitoring --create-namespace \
   --values kubernetes/monitoring/values.yaml
-kubectl apply -f kubernetes/monitoring/prometheus-rules.yaml
 kubectl apply -f kubernetes/monitoring/servicemonitors/vllm-servicemonitor.yaml
 kubectl apply -f kubernetes/monitoring/dashboards/sovereign-ai-dashboard-configmap.yaml
 ```
@@ -43,7 +44,6 @@ These are deployment commands for an operator to run later; this change set was 
 
 ```bash
 kubectl -n monitoring get pods
-kubectl -n monitoring get prometheusrule sovereign-ai-alerts
 kubectl -n monitoring get servicemonitor vllm -o yaml
 kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80
 kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090
@@ -57,6 +57,8 @@ In Prometheus, inspect **Status -> Targets** and query `up{namespace="ai-llm"}`.
 
 Follow `telegram/README.md` to create `grafana-telegram` locally without writing credentials to Git. In Grafana Alerting, create or update the Telegram contact point, send a test notification, then route warning and critical alerts to it. Code provisioning must wait until the installed chart/Grafana version is known; copying an unverified provisioning schema into values could silently break alert delivery.
 
+The successful test-notification evidence validates Grafana's native contact-point test. It does not validate deployment of the reference PrometheusRule manifest.
+
 ## Validation
 
 ```bash
@@ -66,6 +68,8 @@ kubectl apply --dry-run=client --validate=false -f kubernetes/monitoring/prometh
 kubectl apply --dry-run=client --validate=false -f kubernetes/monitoring/servicemonitors/vllm-servicemonitor.yaml
 kubectl apply --dry-run=client --validate=false -f kubernetes/monitoring/dashboards/sovereign-ai-dashboard-configmap.yaml
 ```
+
+The PrometheusRule command above is syntax validation only. Do not interpret it as an installation or runtime-validation command.
 
 ## Troubleshooting
 
