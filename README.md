@@ -105,11 +105,18 @@ The monitoring stack provides namespace and pod-level CPU and memory visibility.
 
 ![Grafana monitoring for ai-llm](docs/evidence/platform/12-grafana-monitoring.png)
 
-The runtime-validated alerting implementation used Grafana native alerting, including a configured evaluation group and a successfully sent test notification.
+The runtime-validated implementation uses Grafana native alerting with a Telegram Bot notification channel. The complete alert delivery pipeline was validated in two stages:
+
+1. Grafana successfully sent a test notification through the configured contact point.
+2. A real firing alert was delivered to the Telegram Bot.
+
+Together, these results confirm the complete end-to-end path from Grafana alert evaluation through Telegram delivery.
 
 ![Grafana native alert rule evidence](docs/evidence/monitoring/grafana-native-alert-rule.png)
 
 ![Grafana successful test notification](docs/evidence/monitoring/grafana-test-notification-success.png)
+
+![Telegram Bot firing notification](docs/evidence/monitoring/telegram-bot-firing-notification.png)
 
 `kubernetes/monitoring/prometheus-rules.yaml` is an unapplied reference manifest only. It is not presented as deployed or runtime-validated.
 
